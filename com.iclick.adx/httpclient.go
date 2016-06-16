@@ -3,42 +3,43 @@ package com_iclick_adx
 import (
 	"net/http"
 	"adx-server/com.iclick.adx/message"
-//	"io/ioutil"
-//	"strings"
-//	"net/url"
-//	"fmt"
+	//	"io/ioutil"
+	//	"strings"
+	//	"net/url"
+	//	"fmt"
 	"github.com/golang/protobuf/proto"
 	"bytes"
-//	"fmt"
+	//	"fmt"
 	"io/ioutil"
-//	"golang.org/x/net/http2"
-//	"crypto/tls"
+	//	"golang.org/x/net/http2"
+	//	"crypto/tls"
 	"time"
 	"net"
-	"fmt"
 	"strings"
 	"errors"
+
+	logger "github.com/alecthomas/log4go"
 )
 
 func SayHello(name string) (s string) {
-	s = "Hello "+name
+	s = "Hello " + name
 	return
 }
 
 func SimplePost(request *message.BidRequest, u string) (response message.BidResponse) {
 	data, _ := proto.Marshal(request)
 	http.Post(u, "application/x-protobuf", bytes.NewReader(data))
-	response =    message.BidResponse{}
+	response = message.BidResponse{}
 	return
 }
 
 var tr = &http.Transport{
-	ResponseHeaderTimeout:time.Millisecond*time.Duration(150),
+	ResponseHeaderTimeout:time.Millisecond * time.Duration(150),
 	MaxIdleConnsPerHost:100,
 	DisableKeepAlives:true,
 	Dial:(&net.Dialer{
-		Timeout:60*time.Second,
-		KeepAlive:2*time.Minute,
+		Timeout:60 * time.Second,
+		KeepAlive:2 * time.Minute,
 	}).Dial,
 }
 
@@ -71,33 +72,35 @@ func RequestDSP(request *message.BidRequest, u string) (response *message.BidRes
 	if err != nil {
 		neterr, ok := err.(net.Error)
 		if !ok {
-			fmt.Println("Error ==>", err, neterr)
+			logger.Error("Error ==> %v,%v", err, neterr)
 			err = errors.New(err.Error())
 			return
 		} else if !neterr.Timeout() {
-			fmt.Println("net.Error.Timeout = false; want true")
+			logger.Error("net.Error.Timeout = false; want true")
 			err = errors.New(neterr.Error())
 			return
 		}
 		if got := neterr.Error(); !strings.Contains(got, "Client.Timeout exceeded") {
-			fmt.Println("error string = %q; missing timeout substring", got)
+			logger.Error("error string = %q; missing timeout substring", got)
 			err = errors.New(neterr.Error())
 			return
 		}
-		fmt.Println("client do TimeOut.  ", err)
+		logger.Error("client do TimeOut.  %v", err)
 		err = errors.New(neterr.Error())
 		return
 	}
 	defer func() {
 		if resp != nil {
 			resp.Body.Close()     //一定要关闭resp.Body
-		}else {
-			fmt.Println(" resp is null .")
+		} else {
+			logger.Warn(" resp is null .")
 		}
 	}()
-	respdata, _ := ioutil.ReadAll(resp.Body)
-	result := &message.BidResponse{}
-	proto.Unmarshal(respdata, result)
-	response = result
+	respdata, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logger.Error("response error %+v ", err)
+	}
+	response = &message.BidResponse{}
+	proto.Unmarshal(respdata, response)
 	return
 }

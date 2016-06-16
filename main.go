@@ -1,67 +1,68 @@
 package main
+
 import (
+	"flag"
 	"fmt"
+	"math/rand"
+	"runtime"
+	"strconv"
+	"time"
+
 	"adx-server/com.iclick.adx"
 	"adx-server/com.iclick.adx/message"
-	"time"
-	"strconv"
-	"runtime"
-	"flag"
+	logger "github.com/alecthomas/log4go"
 )
 
-
-var curr = flag.Int("curr", 2, "并发数")
-var rnum = flag.Int("rnum", 2, "请求数")
+var r = rand.New(rand.NewSource(time.Now().UnixNano()))
+var curr = flag.Int("curr", 1, "并发数")
+var rnum = flag.Int("rnum", 1, "请求数")
 var tint = flag.Int("tint", 500, "每次请求间隔")
 var u = flag.String("url", "http://127.0.0.1:9090/v1/bid", "请求目录地址")
 
+func init() {
+	logger.LoadConfiguration("./conf/log4go.xml")
+}
 
 func main() {
-
+	defer logger.Close()
 	flag.Parse()
+	cpus := runtime.NumCPU()
 
-	fmt.Println("并发数=", *curr, " 单线程请求数=", *rnum, " 每次请求间隔=", *tint, " 请求地址=", *u)
-
-	//	com_iclick_adx.RequestDSP()
-	//	str := com_iclick_adx.SayHello("Ckex.zha")
-	//	fmt.Println(str)
+	logger.Info("CPU核心数=%d,\t并发数=%d,\t单线程请求数=%d,\t每次请求间隔时间=%d,\t请求地址=%s", cpus, *curr, *rnum, *tint, *u)
 
 	timeStart := time.Now().UnixNano()
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
+	runtime.GOMAXPROCS(cpus)
 	count := *curr
 	subcount := *rnum
-
-	all := count*subcount
+	all := count * subcount
 
 	resultlist := make([]string, all)
-	quit := make(chan string)
 	ch := make(chan string, all)
 
-	for i := 0; i< count; i++ {
+	for i := 0; i < count; i++ {
 		go func(index int) {
-			for j := 0; j<subcount; j++ {
+			for j := 0; j < subcount; j++ {
 				st := time.Now().UnixNano()
-				res, err := request("\t ["+strconv.Itoa(index)+" -- "+strconv.Itoa(j)+"]", *u)
+				res, err := request("\t [" + strconv.Itoa(index) + " -- " + strconv.Itoa(j) + "]", *u)
 				if err != nil {
 					res = "-1"
 				}
 				ch <- res
-				uset := (time.Now().UnixNano()-st) / (1000*1000)
-				sleepTime := int64(*tint) - uset
+				uset := (time.Now().UnixNano() - st)
+				sleepTime := int64(*tint) * 1000 * 1000 - uset
 				if sleepTime > 0 {
-					time.Sleep(time.Millisecond*time.Duration(sleepTime))
+					time.Sleep(time.Nanosecond * time.Duration(sleepTime))
 				}
 			}
 		}(i)
 	}
 
+	quit := make(chan string)
 	go func() {
 		st := time.Now().UnixNano()
-		time.Sleep(time.Second*60)
-		us := (time.Now().UnixNano() - st) / (1000*1000)
-		quit <- "quit,useTime="+strconv.FormatInt(us, 10)+" -ms"
+		time.Sleep(time.Second * 60)
+		us := (time.Now().UnixNano() - st) / (1000 * 1000)
+		quit <- "quit,useTime=" + strconv.FormatInt(us, 10) + " -ms"
 	}()
 
 	next := true
@@ -70,7 +71,7 @@ func main() {
 		select {
 		case result := <-ch:
 			resultlist[rc] = result
-			rc+=1
+			rc += 1
 			if rc == all {
 				next = false
 			}
@@ -79,16 +80,24 @@ func main() {
 			next = false
 		}
 	}
-	allTime := (time.Now().UnixNano() - timeStart) / (1000*1000)
+	allTime := (time.Now().UnixNano() - timeStart) / (1000 * 1000)
 	var success = 0
 	for index, ele := range resultlist {
 		if len(ele) > 5 {
-			success +=1
+			success += 1
 		}
-		fmt.Println(index, ele)
+		logger.Info(index, ele)
 	}
-	fmt.Println("Game Over . All Use Time = ", allTime, " All Request = ", all, " Avg = ", allTime / int64(all), " 成功率 = ", (float64(success)/float64(all))*100.0, "%", " 当前QPS:", int64(float64(all) / (float64(allTime)/1000.0)))
 
+	allTimeSecond := float64(allTime) / 1000.00
+	if allTimeSecond <= 0 {
+		allTimeSecond = 1
+	}
+	qps := float64(all) / allTimeSecond
+	if qps < 1 && all > 0 {
+		qps = 1
+	}
+	logger.Info("Game over. All use time=%d, All reqeust=%d, Avg=%d, 成功率=%.3f%s, 预计当前QPS=%d", allTime, all, allTime / int64(all), ( (float64(success) / float64(all)) * 100.0), "%", int(qps))
 
 }
 
@@ -97,62 +106,94 @@ func request(index, u string) (str string, err error) {
 	bidRequest := builderBidRequest()
 	response, err := com_iclick_adx.RequestDSP(bidRequest, u)
 	if err != nil {
-		fmt.Println(err)
+		logger.Error("Http error. %v", err)
 		return
 	}
-	useTime := (time.Now().UnixNano()-st) / (1000*1000)
-	str = response.Id+"\t index:"+index+" use time:"+strconv.FormatInt(useTime, 10)+"-ms"
-	//	fmt.Println(str, "response==>", response)
+	useTime := (time.Now().UnixNano() - st) / (1000 * 1000)
+	str = response.Id + "\t index:" + index + " use time:" + strconv.FormatInt(useTime, 10) + "-ms"
 	return
 }
 
 func builderBidRequest() (bidRequest *message.BidRequest) {
+
+	publisher := &message.BidRequest_Publisher{
+		Id: strconv.Itoa(1000 + r.Intn(100)),
+	}
+
 	banner := &message.BidRequest_Impression_Banner{
-		W:100,
-		H:250,
+		W: 300,
+		H: 250,
+	}
+
+	video := &message.BidRequest_Impression_Video{
+		Mimes:       []string{"mimes"},
+		Minduration: int32(10 + r.Intn(5)),
+		Maxduration: int32(20 + r.Intn(5)),
+		Protocols:   []int32{int32(1 + r.Intn(6))},
+		W:           300,
+		H:           250,
+		Startdelay:  0,
 	}
 
 	imp := []*message.BidRequest_Impression{
-		&message.BidRequest_Impression{
-			Id:"imp-123",
-			Banner:banner,
-			Bidfloor:0.01,
-			Bidfloorcur:"CNY",
+		&message.BidRequest_Impression{// Banner
+			Id:          strconv.Itoa(2000 + r.Intn(100)),
+			Banner:      banner,
+			Bidfloor:    1.25 + r.Float32(),
+			Bidfloorcur: "CNY",
+		},
+		&message.BidRequest_Impression{// Video
+			Id:          strconv.Itoa(2000 + r.Intn(100)),
+			Video:       video,
+			Bidfloor:    1.25 + r.Float32(),
+			Bidfloorcur: "CNY",
 		},
 	}
 
-	publisher := &message.BidRequest_Site_Publisher{
-		Id:"publisher-123",
+	site := &message.BidRequest_Site{
+		Id:        strconv.Itoa(3000 + r.Intn(100)),
+		Page:      "http://wwww.i-click.com",
+		Publisher: publisher,
 	}
 
-	site := &message.BidRequest_Site{
-		Id:"site-123",
-		Page:"http://wwww.i-click.com",
-		Publisher:publisher,
+	app := &message.BidRequest_App{
+		Id:        strconv.Itoa(4000 + r.Intn(100)),
+		Publisher: publisher,
 	}
 
 	device := &message.BidRequest_Device{
-		Ua:"Go-http-client/1.1",
-		Ip:"127.0.0.1",
+		Ua:  "Go-http-client/1.1",
+		Ip:  "127.0.0.1",
+		Ifa: "ifa",
 	}
 
 	user := &message.BidRequest_User{
-		Id:"user-123",
-		Buyeruid:"buyreuid-321",
+		Id:       strconv.Itoa(5000 + r.Intn(100)),
+		Buyeruid: strconv.Itoa(6000 + r.Intn(100)),
 	}
 
-	cnys := []string{
-		"CNY",
+	bidRequests := []*message.BidRequest{
+		&message.BidRequest{// Site
+			Id:     strconv.Itoa(7000 + r.Intn(100)),
+			Imp:    []*message.BidRequest_Impression{imp[r.Intn(len(imp))]},
+			Site:   site,
+			Device: device,
+			User:   user,
+			Test:   1,
+			Tmax:   100,
+			Cur:    []string{"CNY"},
+		},
+		&message.BidRequest{// App
+			Id:     strconv.Itoa(7000 + r.Intn(100)),
+			Imp:    []*message.BidRequest_Impression{imp[r.Intn(len(imp))]},
+			App:    app,
+			Device: device,
+			User:   user,
+			Test:   1,
+			Tmax:   100,
+			Cur:    []string{"CNY"},
+		},
 	}
-	bidRequest = &message.BidRequest{
-		Id:"456",
-		Imp:imp,
-		Site:site,
-		Device:device,
-		User:user,
-		Test:1,
-		Tmax:100,
-		Cur:cnys,
-	}
+	bidRequest = bidRequests[r.Intn(len(bidRequests))]
 	return
 }
