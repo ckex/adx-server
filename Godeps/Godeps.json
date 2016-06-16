@@ -1,0 +1,11 @@
+{
+	"ImportPath": "adx-server",
+	"GoVersion": "devel",
+	"GodepVersion": "v62",
+	"Deps": [
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "2402d76f3d41f928c7902a765dfc872356dd3aad"
+		}
+	]
+}
