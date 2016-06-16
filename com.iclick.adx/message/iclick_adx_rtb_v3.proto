@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+// option java_generate_equals_and_hash = true;
+// option java_generic_services = true;
+// option java_multiple_files = true;
+option java_package = "com.buzzinate.ssp.common.protocl";
+option java_outer_classname = "IclickAdxRtb";
+
+package message;
+
+message BidRequest {
+    // 请求ID，唯一标识本次请求，明文字符串
+    string id = 1 ;
+    //**** 曝光信息 ****
+    message Impression {
+        // 曝光id
+        string id = 1 ;
+        //**** 版位信息 ****
+        message Banner {
+            // 宽
+            int32 w = 1 ;
+            // 高
+            int32 h = 2 ;
+        }
+        // 版位信息
+        Banner banner = 2 ;
+        // 版位底价，单位：千次展示/元
+        float bidfloor = 3 ;
+        // 版位货币单位，默认为CNY(人民币)
+        string bidfloorcur = 4 ;
+    }
+    // 默认每次请求一个广告位
+    repeated Impression imp = 2 ;
+    //**** 网站信息 ****
+    message Site {
+        // 网站id
+        string id = 1 ;
+        // 页面url
+        string page = 2 ;
+        //****  Publisher 媒体相关信息
+        message Publisher {
+            string id = 1 ;
+        }
+        // publisher
+        Publisher publisher = 3 ;
+    }
+    // 网站信息
+    Site site = 3 ;
+    //**** 设备信息 ****
+    message Device {
+        // User-Agent
+        string ua = 1 ;
+        // 用户IP地址，点分十进制字符串
+        string ip = 2 ;
+    }
+    Device device = 4 ;
+    // **** 用户信息 ****
+    message User {
+        // 用户ID
+        string id = 1 ;
+        // Partner's User ID
+        string buyeruid = 2;
+    }
+    //用户信息
+    User user = 5 ;
+    // 0 = live mode, 1 = test mode.
+    int32 test = 6 ;
+    // 最大竞价时间，单位milliseconds
+    int32 tmax = 7 ;
+    // 竞价货币类型, 默认为人民币(CNY)
+    repeated string cur = 8 ;
+}
+
+message BidResponse {
+    // 返回ID，请将请求中的id赋值给返回id
+    string id = 1 ;
+    // **** seatbid ****
+    message SeatBid {
+        // **** 竞价广告信息 ****
+        message Bid {
+            string id = 1 ;
+            // 竞价的曝光id
+            string impid = 2 ;
+            // 竞价，单位：千次展示/元
+            float price = 3 ;
+            // ID of a preloaded ad to be served if the bid wins.
+            string adid = 4 ;
+            // winner通知url
+            string nurl = 5 ;
+            // ad markup. XHTML if banner, VAST XML if video
+            string adm = 6 ;
+            // campaign id
+            string cid = 7 ;
+            // creative id
+            string crid = 8 ;
+            // 物料尺寸 - 高度。需与请求中的尺寸一致
+            int32 h = 9 ;
+            // 物料尺寸 - 宽度。需与请求中的尺寸一致
+            int32 w = 10 ;
+            // IAB content categories of the creative as defined in OpenRTB.  Refer to List 5.1
+            repeated string cat = 11 ;
+        }
+        // 返回的竞价广告
+        repeated Bid bid = 1;
+        // ID of the bidder seat on whose behalf this bid is made。竟价的 seat
+        string seat = 2 ;
+    }
+    // 返回的广告信息
+    repeated SeatBid seatbid = 2 ;
+    string cur = 3 ;
+}
