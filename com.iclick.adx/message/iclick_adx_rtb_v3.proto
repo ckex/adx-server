@@ -3,109 +3,262 @@ syntax = "proto3";
 // option java_generate_equals_and_hash = true;
 // option java_generic_services = true;
 // option java_multiple_files = true;
-option java_package = "com.buzzinate.ssp.common.protocl";
+package message; // support Golang
+option java_package = "com.iclick.adx.common.protocl";
 option java_outer_classname = "IclickAdxRtb";
-
-package message;
 
 message BidRequest {
     // 请求ID，唯一标识本次请求，明文字符串
-    string id = 1 ;
+    // Always   yes
+    string id = 1;
     //**** 曝光信息 ****
     message Impression {
         // 曝光id
-        string id = 1 ;
+        // Always   yes
+        string id = 1;
         //**** 版位信息 ****
         message Banner {
             // 宽
-            int32 w = 1 ;
+            // Always   yes
+            int32 w = 1;
             // 高
-            int32 h = 2 ;
+            // Always   yes
+            int32 h = 2;
+            // Blocked banner ad types. Refer to OpenRTB 2.3.1 Section 5.2.
+            // Always   no
+            repeated int32 btype = 3;
+            // Ad position on screen. Refer to OpenRTB 2.3.1 Section 5.4.
+            // Always   no
+            int32 pos = 4;
+            // Content MIME types supported.
+            // Always   no
+            repeated int32 mimes = 5;
+            // Ext
+            Ext ext = 6;
+            message Ext {
+                // postion floating .
+                // 1     Floating Left
+                // 2     Floating Right
+                // 3     Floating Top
+                // 4     Floating Bottom
+                // 5     Floating Top Left
+                // 6     Floating Top Right
+                // 7     Floating Bottom Left
+                // 8     Floating Bottom Right
+                // Always   no
+                int32 pos = 1;
+            }
         }
         // 版位信息
+        // Always   Yes, if this impression is a banner ad opportunity.
         Banner banner = 2 ;
+
+        //***** Video Object. *****
+        message Video{
+            // Content MIME types supported.
+            // Always   yes
+            repeated string mimes = 1;
+            // Minimum video ad duration in seconds.
+            // Always   yes
+            int32 minduration = 2;
+            // Maximum video ad duration in seconds.
+            // Always   yes
+            int32 maxduration = 3;
+            // Array of supported video bid response protocols. Refer to OpenRTB 2.3.1 Section 5.8.
+            // Always   yes
+            repeated int32 protocols = 4;
+            // Width of the video player in pixels.
+            // Always   yes
+            int32 w = 5;
+            // Height of the video player in pixels.
+            // Always   yes
+            int32 h = 6;
+            // Indicates the start delay in seconds for pre-roll, mid-roll, or post-roll ad placements. OpenRTB 2.3.1 Section 5.10.
+            // Always   no
+            int32 startdelay = 7;
+            // Ad position on screen. Refer to OpenRTB 2.3.1 Section 5.4.
+            // Always   no
+            int32 pos = 8;
+        }
+        // video object
+        // Always   Yes,  if this impression is a video ad opportunity.
+        Video video = 3;
+        // Name of ad mediation partner, SDK technology, or player responsible for rendering ad (typically video or mobile).
+        // Always   no
+        string displaymanager = 4;
+        // Version of the display manager.
+        // Always   no
+        string displaymanagerver = 5;
         // 版位底价，单位：千次展示/元
-        float bidfloor = 3 ;
-        // 版位货币单位，默认为CNY(人民币)
-        string bidfloorcur = 4 ;
+        // Always   no
+        float bidfloor = 6;
+        // 版位货币单位，默认为CNY(人民币) Currency specified using ISO-4217 alpha codes.
+        // Always   no
+        string bidfloorcur = 7;
     }
     // 默认每次请求一个广告位
-    repeated Impression imp = 2 ;
+    // Always   yes
+    repeated Impression imp = 2;
+
+    //****  Publisher 媒体相关信息
+    message Publisher {
+        // Unique ID of this publisher.
+        // Always   yes
+        string id = 1;
+    }
     //**** 网站信息 ****
     message Site {
         // 网站id
-        string id = 1 ;
+        // Always   yes
+        string id = 1;
         // 页面url
-        string page = 2 ;
-        //****  Publisher 媒体相关信息
-        message Publisher {
-            string id = 1 ;
-        }
+        // Always   no
+        string page = 2;
         // publisher
-        Publisher publisher = 3 ;
+        // Always   yes
+        Publisher publisher = 3;
     }
     // 网站信息
+    // Always   Yes, if this impression is a banner ad opportunity.
     Site site = 3 ;
+    // APP
+    message App {
+        // Unique ID of this app.
+        // Always   yes
+        string id = 1;
+        // App name (may be aliased at the publisher’s request).
+        // Always   no
+        string name = 2;
+        // Application bundle or package name (e.g., com.foo.mygame).
+        // Always   no
+        string bundle = 3;
+        // Domain of the app (e.g., “mygame.foo.com”).
+        // Always   no
+        string domain = 4;
+        // Publisher Object.
+        // Always   yes
+        Publisher publisher = 5;
+    }
+    // App Object. Only application for apps.
+    // Always   Yes, if this impression is a video ad opportunity.
+    App app = 4 ;
     //**** 设备信息 ****
     message Device {
-        // User-Agent
-        string ua = 1 ;
-        // 用户IP地址，点分十进制字符串
-        string ip = 2 ;
+        // User-Agent Browser user agent string.
+        // Always   no
+        string ua = 1;
+        // 用户IP地址，点分十进制字符串 IPv4 address closest to device.
+        // Always   no
+        string ip = 2;
+        // Not hashed ID
+        // Always   no
+        string ifa = 3;
+        // Hardware device ID (e.g., IMEI); hashed via SHA1.
+        // Always   no
+        string didsha1 = 4;
+        // Hardware device ID (e.g., IMEI); hashed via MD5.
+        // Always   no
+        string didmd5 = 5;
+        // Platform device ID (e.g., Android ID); hashed via SHA1.
+        // Always   no
+        string dpidsha1 = 6;
+        // Platform device ID (e.g., Android ID); hashed via MD5.
+        // Always   no
+        string dpidmd5 = 7;
+        // MAC address of the device; hashed via SHA1.
+        // Always   no
+        string macsha1 = 8;
+        // MAC address of the device; hashed via MD5.
+        // Always   no
+        string macmd5 = 9;
     }
-    Device device = 4 ;
+    // Always   yes
+    Device device = 5;
     // **** 用户信息 ****
     message User {
-        // 用户ID
+        // 用户ID Unique ID of this user on the exchange.
+        // Always   yes
         string id = 1 ;
-        // Partner's User ID
+        // Buyer-specific ID for the user as mapped by iClick for the buyer
+        // Always   no
         string buyeruid = 2;
     }
     //用户信息
-    User user = 5 ;
-    // 0 = live mode, 1 = test mode.
-    int32 test = 6 ;
-    // 最大竞价时间，单位milliseconds
-    int32 tmax = 7 ;
-    // 竞价货币类型, 默认为人民币(CNY)
-    repeated string cur = 8 ;
+    // Always   yes
+    User user = 6;
+    // Indicator of test mode in which auctions are not billable, where 0 = live mode, 1 = test mode, default 0.
+    // Always   no
+    int32 test = 7;
+    // 最大竞价时间，单位milliseconds   Maximum time in milliseconds to submit a bid to avoid timeout, default 100.
+    // Always   no
+    int32 tmax = 8;
+    // 竞价货币类型, 默认为人民币(CNY)   Array of allowed currencies for bids on this bid request using ISO-4217 alpha codes.
+    // Always   no
+    repeated string cur = 9;
 }
 
 message BidResponse {
-    // 返回ID，请将请求中的id赋值给返回id
-    string id = 1 ;
+    // 返回ID，请将请求中的id赋值给返回id。 ID of the bid request to which this is a response.
+    // Always   yes
+    string id = 1;
     // **** seatbid ****
     message SeatBid {
         // **** 竞价广告信息 ****
         message Bid {
-            string id = 1 ;
-            // 竞价的曝光id
-            string impid = 2 ;
-            // 竞价，单位：千次展示/元
-            float price = 3 ;
-            // ID of a preloaded ad to be served if the bid wins.
-            string adid = 4 ;
+            // Bidder generated bid ID to assist with logging/tracking.
+            // Always   yes
+            string id = 1;
+            // 竞价的曝光id,ID of the Impression Object in the related bid request.
+            // Always   yes
+            string impid = 2;
+            // 竞价，cpm 单位：千次展示/元
+            // Always   yes
+            float price = 3;
+            // ID of a preloaded ad to be served if the bid wins. 比如预审广告，投放时只返回该Adid
+            // Always   no
+            string adid = 4;
             // winner通知url
-            string nurl = 5 ;
-            // ad markup. XHTML if banner, VAST XML if video
-            string adm = 6 ;
+            // Always   no
+            string nurl = 5;
+            // Ad markup in case the bid wins.
+            // Always   yes
+            string adm = 6;
+            // 广告主 domain。 Advertiser domain for block list checking and ad quality/safety checking (e.g., 'ford.com'). Only one domain is allowed.
+            // Always   yes
+            repeated string adomain = 7;
+            // 广告纯内容的url。 URL without cache-busting to an image that is representative of the content of the campaign for ad quality/safety checking.
+            // Always   yes
+            string iurl = 8;
             // campaign id
-            string cid = 7 ;
+            // Always   no
+            string cid = 9;
             // creative id
-            string crid = 8 ;
+            // Always   yes
+            string crid = 10;
             // 物料尺寸 - 高度。需与请求中的尺寸一致
-            int32 h = 9 ;
+            // Always   yes
+            int32 h = 11;
             // 物料尺寸 - 宽度。需与请求中的尺寸一致
-            int32 w = 10 ;
+            // Always   yes
+            int32 w = 12;
             // IAB content categories of the creative as defined in OpenRTB.  Refer to List 5.1
-            repeated string cat = 11 ;
+            // Always   no
+            repeated string cat = 13;
         }
         // 返回的竞价广告
+        // Always   yes
         repeated Bid bid = 1;
-        // ID of the bidder seat on whose behalf this bid is made。竟价的 seat
-        string seat = 2 ;
+        // ID of the bidder seat on whose behalf this bid is made。竟价的 seat. 如 代表多个dsp出价...
+        // Always   no
+        string seat = 2;
     }
     // 返回的广告信息
-    repeated SeatBid seatbid = 2 ;
-    string cur = 3 ;
+    // Always   yes
+    repeated SeatBid seatbid = 2;
+    // Bidder generated response ID to assist with logging/tracking.
+    // Always   no
+    string bidid = 3;
+    // Bid currency using ISO-4217 alpha codes. default CNY
+    // Always   no
+    string cur = 4;
 }
