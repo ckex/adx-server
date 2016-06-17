@@ -3,12 +3,12 @@
         <tag>stdout</tag>
         <type>console</type>
         <!-- level is (:?FINEST|FINE|DEBUG|TRACE|INFO|WARNING|ERROR) -->
-        <level>DEBUG</level>
+        <level>WARNING</level>
     </filter>
     <filter enabled="true">
         <tag>file</tag>
         <type>file</type>
-        <level>INFO</level>
+        <level>DEBUG</level>
         <property name="filename">/var/log/iax/iax-test.log</property>
         <!--
            %T - Time (15:04:05 MST)
